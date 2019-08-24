@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Todo List</title>
+	<link rel="stylesheet" href="assets/css/base.css">
+	<link rel="stylesheet" href="assets/css/index.css">
+	<script src="../js/jquery.min.js"></script>
+	<script src="../js/template-web.js"></script>
+</head>
+
+<body>
+	<section class="todoapp">
+		<header class="header">
+			<h1>todos</h1>
+			<input id="task" class="new-todo" placeholder="What needs to be done?" autofocus>
+		</header>
+		<!-- This section should be hidden by default and shown when there are todos -->
+		<section class="main">
+			<input class="toggle-all" type="checkbox">
+			<label for="toggle-all">Mark all as complete</label>
+			<ul class="todo-list" id="todo-list">
+				<!-- These are here just to show the structure of the list items -->
+				<!-- List items should get the class `editing` when editing and `completed` when marked as completed -->
+				<!-- <li class="completed">
+					<div class="view">
+						<input class="toggle" type="checkbox" checked>
+						<label>Taste JavaScript</label>
+						<button class="destroy"></button>
+					</div>
+					<input class="edit" value="Create a TodoMVC template">
+				</li>
+				<li>
+					<div class="view">
+						<input class="toggle" type="checkbox">
+						<label>Buy a unicorn</label>
+						<button class="destroy"></button>
+					</div>
+					<input class="edit" value="Rule the web">
+				</li> -->
+			</ul>
+		</section>
+		<!-- This footer should hidden by default and shown when there are todos -->
+		<footer class="footer">
+			<!-- This should be `0 items left` by default -->
+			<span class="todo-count"><strong>0</strong> item left</span>
+			<!-- Remove this if you don't implement routing -->
+			<ul class="filters">
+				<li>
+					<a class="selected" href="#/">All</a>
+				</li>
+				<li>
+					<a  href="javascript:;" id="Active">Active</a>
+				</li>
+				<li>
+					<a href="javascript:;" id="Completed">Completed</a>
+				</li>
+			</ul>
+			<!-- Hidden if no completed items are left ↓ -->
+			<button class="clear-completed">Clear completed</button>
+		</footer>
+	</section>
+	<script id="taskTpl" type="text/html">
+		{{each task}}
+			<li class="{{$value.completed ? 'completed' : ''}}">
+				<div class="view">
+					<input class="toggle" type="checkbox" {{$value.completed ? 'checked' : ''}}  >
+					<label>{{$value.title}}</label>
+					<button class="destroy" data-id="{{$value._id}}"></button>
+				</div>
+				<input class="edit" value="Create a TodoMVC template">
+			</li>
+		{{/each}}
+		</script>
+	<script>
+		var taskInp = $('#task');
+
+		// 定义一个数组  基于数据驱动ui界面 vue 
+		var taskArr = [];
+
+		// 获取任务列表 
+		$.ajax({
+			type: 'GET',
+			url: '/todo/task',
+			success: function (res) {
+				// 将返回的res赋值给 taskArr 
+				taskArr = res;
+				render(taskArr);
+
+			}
+		})
+
+		// 添加任务 
+		taskInp.on('keyup', function (e) {
+			// 如果我们 e.keyCode的值是13 
+			if (e.keyCode == 13) {
+				var taskVal = $(this).val().replace(/\s/g, '');
+				// 如果没有输入内容 我们就提示用户 
+				if (taskVal.trim().length == 0) {
+					alert("请输入内容");
+					return;
+				}
+				// 假设我们要添加的任务已经存在 那么我们就不要添加了 要么是一个对象 要么是一个undefined
+				var flag = taskArr.find(item => item.title == taskVal);
+				// 下面的这个if语句它会做自动类型 
+				if (flag) {
+					alert("该任务已存在,请重新输入");
+					return;
+				}
+
+				// 向服务器端发送请求 添加任务
+				$.ajax({
+					type: 'post',
+					url: '/todo/addTask',
+					contentType: 'application/json',
+					data: JSON.stringify({ title: taskVal }),
+					success: function (response) {
+						// 将任务添加到任务列表中
+						taskArr.push(response);
+						// 拼接字符串 将拼接好的字符串显示在页面中
+						render(taskArr);
+						// 清空文本框中的内容
+						taskInp.val('');
+
+					}
+				})
+			}
+		});
+
+		// 我们需要给删除按钮注册点击事件   因为这些Li是来自未来的 
+		$('#todo-list').on('click', '.destroy', function () {
+			// window.confirm("你真的要删除我吗?")确认框 有两个按钮  确定 取消  它太丑了 
+			if (window.confirm("你真的要删除我吗?")) {
+				// 表示要删除 
+				var id = $(this).attr('data-id');
+				// 发送ajax给服务器 让服务器将这条数据给删除 
+				$.ajax({
+					type: 'get',
+					url: '/todo/deleteTask',
+					data: {
+						_id: id
+					},
+					success: function (res) {
+						// 我们需要实现无刷新删除 
+						// 我们这个ajax只是实现了将mongodb这个数据库里面的todos这个集合中数据给删除了 但是我们页面上渲染的数据是依赖于 taskArr这个数组 我们需要在taskArr这个数组中 找到被删除的这个元素 然后调用splice方法 将其删除  同时调用render() 重新渲染页面 
+						// findIndex()
+						var index = taskArr.findIndex(item => item._id == res._id);
+						taskArr.splice(index, 1);
+						render(taskArr);
+
+					}
+				});
+
+			}
+
+		});
+
+		$('#todo-list').on('click', '.toggle', function () {
+			// 获取当前被选中的这个元素的状态 
+			var status = $(this).prop('checked');
+			var id = $(this).siblings('button').attr('data-id');
+			$.ajax({
+				type: 'post',
+				url: '/todo/modifyTask',
+				contentType: 'application/json',
+				data: JSON.stringify({
+					_id: id,
+					completed: status
+				}),
+				success: function (res) {
+					// console.log(res);  数组 
+					var task = taskArr.find(item => item._id == res._id);
+					// 将task这个对象里面的completed它的值设置为res.completed
+					task.completed = res.completed;
+					render();
+				}
+			});
+		});
+
+		// 1.需要找到label标签给其注册双击事件 使用事件委托的方式来注册 
+		var oldValue;
+		$('#todo-list').on('dblclick', 'label', function () {
+			$(this).parents('li').addClass('editing');
+			oldValue = $(this).text();
+			$(this).parent().next().val(oldValue);
+			$(this).parent().next().focus();
+		});
+
+		$('#todo-list').on("blur", '.edit', function () {
+			var newTaskName = $(this).val().replace(/\s/g, '');
+			var id = $(this).siblings().find('button').attr('data-id');
+
+			// 如果即将要修改的这个值它不等于之前没有被修改的那个值  代码才去判断
+			// if (oldValue != newTaskName) {
+			// 	//console.log("这个值被修改了"); return;
+			// 	// 这个值被修改了 
+			// 	var flag = taskArr.find(item => item.title == newTaskName);
+			// 	// 下面的这个if语句它会做自动类型 
+			// 	if (flag) {
+			// 		alert("该任务已存在,请重新输入");
+			// 		return;
+			// 	}
+			// } else {
+			// 	// 没有修改 
+			// 	render();
+			// 	return;
+
+			// }
+
+
+
+
+			if (oldValue == newTaskName) return render();
+
+			var flag = taskArr.find(item => item.title == newTaskName);
+			// 	// 下面的这个if语句它会做自动类型 
+			if (flag) {
+				alert("该任务已存在,请重新输入");
+				return;
+			}
+
+
+			// 向服务器端发送请求 修改任务名称
+			$.ajax({
+				url: '/todo/modifyTask',
+				type: 'post',
+				data: JSON.stringify({ _id: id, title: newTaskName }),
+				contentType: 'application/json',
+				success: function (response) {
+					// 将当期任务的最新状态同步到任务数组中
+					var task = taskArr.find(item => item._id == id);
+					// 修改任务名称
+					task.title = response.title;
+					// 将任务数组中的任务同步到页面中
+					render(taskArr);
+
+				}
+			})
+
+
+		});
+
+
+		$('#Completed').on('click',function(){
+			var newArr = taskArr.filter(item=>item.completed == false);
+			render(newArr);
+		});
+
+		$('#Active').on('click',function(){
+			var newArr = taskArr.filter(item=>item.completed == true);
+			render(newArr);
+		});
+
+
+
+		// 将数据渲染到DOM中 
+		function render(arr) {
+			// 调用template方法 
+			var str = template('taskTpl', {
+				task: arr
+			});
+			// console.log(str);
+			$('#todo-list').html(str);
+		}
+
+
+	</script>
+</body>
+
+</html>

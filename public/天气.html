@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    <table width="800" border="1" align="center" style="border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>date</th>
+                <th>dayPictureUrl</th>
+                <th>nightPictureUrl</th>
+                <th>temperature</th>
+                <th>weather</th>
+                <th>wind</th>
+            </tr>
+        </thead>
+        <tbody>
+
+        </tbody>
+    </table>
+
+
+    <!-- <script src="js/jsonp.js"></script> -->
+    <script src="js/template-web.js"></script>
+    <script type="text/html" id="tpl">
+        {{each list}}
+        <tr>
+                <td>{{$value.date}}</td>
+                <td><img src="{{$value.dayPictureUrl}}" alt=""></td>
+                <td><img src="{{$value.nightPictureUrl}}" alt=""></td>
+                <td>{{$value.temperature}}</td>
+                <td>{{$value.weather}}</td>
+                <td>{{$value.wind}}</td>
+            </tr>
+        {{/each}}
+    </script>
+    <script src="./js/jquery.min.js"></script>
+    <script>
+        // jQuery中的ajax它支持 jsonp请求  需要我们需要发送jsonp 只需要设置一个属性 叫dataType 它的值是'jsonp'01.$.ajax方法基本使用.html
+        // $.ajax({
+        //     url: 'http://api.map.baidu.com/telematics/v3/weather',
+        //     data: {
+        //         ak: "zVo5SStav7IUiVON0kuCogecm87lonOj",  // 开发者密钥
+        //         location: "武汉|上海", // 地区 
+        //         output: 'json'  // 服务器返回的数据格式
+        //     },
+        //     // 让jquery中的ajax支持jsonp 它不是ajax　
+        //     dataType:'jsonp',
+        //     success: function (res) {
+        //         console.log(res.results[0]);
+
+        //         var str = template('tpl', { list: res.results[0].weather_data });
+        //         document.querySelector('tbody').innerHTML = str;
+        //     }
+        // });
+        // 在jquery中它不止有$.ajax方法  还有$.post() $.get()
+        // $.get 它只支持get请求  $.post它只支持post 
+        $.ajax({
+            url: 'http://api.map.baidu.com/telematics/v3/weather',
+            data: {
+                ak: "zVo5SStav7IUiVON0kuCogecm87lonOj",  // 开发者密钥
+                location: "武汉|上海", // 地区 
+                output: 'json'  // 服务器返回的数据格式
+            },
+            // 让jquery中的ajax支持jsonp 它不是ajax　
+            dataType: 'jsonp',
+            success: function (res) {
+                console.log(res.results[0]);
+
+                var str = template('tpl', { list: res.results[0].weather_data });
+                document.querySelector('tbody').innerHTML = str;
+            }
+        });
+
+
+
+
+        // jsonp({
+        //     url: 'http://api.map.baidu.com/telematics/v3/weather',
+        //     data: {
+        //         ak: "zVo5SStav7IUiVON0kuCogecm87lonOj",  // 开发者密钥
+        //         location: "武汉|上海", // 地区 
+        //         output: 'json'  // 服务器返回的数据格式
+        //     },
+        //     success: function (res) {
+        //         // console.log(res.results[0]);
+
+        //         var str = template('tpl', { list: res.results[0].weather_data });
+        //         document.querySelector('tbody').innerHTML = str;
+        //     }
+        // });
+
+
+    </script>
+</body>
+
+</html>
